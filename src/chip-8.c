@@ -79,9 +79,68 @@ void chip_8_clock_tick(chip_8 *chip) {
                 printf("ERROR: Stack Underflow\n");
                 return;
             }
-            chip->pc = chip->stack[--(chip->sp)];
+            chip->pc = chip->stack[(chip->sp)--];
         } else {
             chip->pc = GET_NNN(opcode);
+        }
+    } else if (prefix == 0x1) {
+        chip->pc = GET_NNN(opcode);
+    } else if (prefix == 0x2) {
+        if (chip->sp + 1 > 15) {
+            printf("ERROR: Stack Overflow\n");
+            return;
+        }
+        chip->stack[++(chip->sp)] = chip->pc;
+        chip->pc = GET_NNN(opcode);
+    } else if (prefix == 0x3) {
+        if (chip->v[GET_X(opcode)] == GET_NN(opcode)) {
+            chip->pc += 2;
+        }
+    } else if (prefix == 0x4) {
+        if (chip->v[GET_X(opcode)] != GET_NN(opcode)) {
+            chip->pc += 2;
+        }
+    } else if (prefix == 0x5) {
+        if (chip->v[GET_X(opcode)] == chip->v[GET_Y(opcode)]) {
+            chip->pc += 2;
+        }
+    } else if (prefix == 0x6) {
+        chip->v[GET_X(opcode)] = GET_NN(opcode);
+    } else if (prefix == 0x7) {
+        chip->v[GET_X(opcode)] += GET_NN(opcode);
+    } else if (prefix == 0x8) {
+        if (GET_N(opcode) == 0x0) {
+            chip->v[GET_X(opcode)] = chip->v[GET_Y(opcode)];
+        } else if (GET_N(opcode) == 0x1) {
+            chip->v[GET_X(opcode)] |= chip->v[GET_Y(opcode)];
+        } else if (GET_N(opcode) == 0x2) {
+            chip->v[GET_X(opcode)] &= chip->v[GET_Y(opcode)];
+        } else if (GET_N(opcode) == 0x3) {
+            chip->v[GET_X(opcode)] ^= chip->v[GET_Y(opcode)];
+        } else if (GET_N(opcode) == 0x4) {
+            uint8_t x = chip->v[GET_X(opcode)];
+            uint8_t y = chip->v[GET_Y(opcode)];
+            if (x + y > 255) {
+                chip->v[0xf] = 1;
+            } else {
+                chip->v[0xf] = 0;
+            }
+            chip->v[GET_X(opcode)] = x + y;
+        } else if (GET_N(opcode) == 0x5) {
+            uint8_t x = chip->v[GET_X(opcode)];
+            uint8_t y = chip->v[GET_Y(opcode)];
+            if (x > y) {
+                chip->v[0xf] = 1;
+            } else {
+                chip->v[0xf] = 0;
+            }
+            chip->v[GET_X(opcode)] = x - y;
+        } else if (GET_N(opcode) == 0x6) {
+            uint8_t x = chip->v[GET_X(opcode)];
+            chip->v[0xf] = x & 0x1;
+            chip->v[GET_X(opcode)] /= 2;
+        } else if (GET_N(opcode) == 0x7) {
+            
         }
     }
 }
