@@ -25,7 +25,13 @@ typedef struct chip_8 {
     uint16_t stack[16];
     
     // Display //
-    uint8_t display[64][32];
+    // Chip-8 has 64x32 display buffer, but is only capable of
+    // drawing 8x8 sprites
+    uint8_t display[CHIP_8_DISPLAY_WIDTH * CHIP_8_DISPLAY_HEIGHT / 8];
+    
+    // Input //
+    // Keyboard consists of keys 0x0 - 0xF
+    uint16_t input;
 } chip_8;
 
 void chip_8_init(chip_8 *chip);
@@ -33,6 +39,8 @@ void chip_8_init(chip_8 *chip);
 int chip_8_load_rom(chip_8 *chip, const char *rom_location);
 
 void chip_8_clock_tick(chip_8 *chip);
+
+int chip_8_key_down(const chip_8 *chip, uint8_t key);
 
 #ifdef __cplusplus
 }

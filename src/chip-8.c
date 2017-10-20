@@ -59,6 +59,10 @@ void chip_8_init(chip_8 *chip) {
     srand((unsigned) time(&t));
 }
 
+int chip_8_key_down(const chip_8 *chip, uint8_t key) {
+    return (chip->input >> key) & 0x1;
+}
+
 #define GET_PREFIX(opcode) ((opcode & 0xf000) >> 16)
 #define GET_X(opcode) ((opcode & 0x0f00) >> 8)
 #define GET_Y(opcode) ((opcode & 0x00f0) >> 4)
@@ -74,11 +78,8 @@ void chip_8_clock_tick(chip_8 *chip) {
     
     if (prefix == 0x0) {
         if (opcode == 0x00e0) {
-            for (int r = 0; r < CHIP_8_DISPLAY_HEIGHT; r++) {
-                for (int c = 0; c < CHIP_8_DISPLAY_WIDTH; c++) {
-                    chip->display[r][c] = 0;
-                }
-            }
+            size_t size = CHIP_8_DISPLAY_WIDTH * CHIP_8_DISPLAY_HEIGHT / 8;
+            memset(chip->display, 0, size);
         } else if (opcode == 0x00ee) {
             if (chip->sp <= 0) {
                 printf("ERROR: Stack Underflow\n");
@@ -169,8 +170,26 @@ void chip_8_clock_tick(chip_8 *chip) {
     } else if (prefix == 0xc) {
         chip->v[GET_X(opcode)] = (rand() % 256) & GET_NN(opcode);
     } else if (prefix == 0xd) {
+        uint8_t width = CHIP_8_DISPLAY_WIDTH / 8;
+        uint8_t height = CHIP_8_DISPLAY_HEIGHT / 8;
         uint8_t x = GET_X(opcode);
         uint8_t y = GET_Y(opcode);
         uint8_t n = GET_N(opcode);
+        uint16_t i = chip->i;
+        size_t size = CHIP_8_DISPLAY_WIDTH * CHIP_8_DISPLAY_HEIGHT / 8;
+        
+        for (uint8_t count = 0; count < n; count++) {
+            chip->display[x + (width * y++) % size] ^= chip->mem[i + count];
+        }
+    } else if (prefix == 0xe) {
+        if (GET_NN(opcode) == 0x9e) {
+            if (chip_8_key_down(chip, chip->v[GET_X(opcode)])) {
+                chip->pc += 2;
+            }
+        } else if (GET_NN(opcode) == 0xa1) {
+            if (!chip_8_key_down(chip, chip->v[GET_X(opcode)])) {
+                chip->pc += 2;
+            }
+        }
     }
 }
