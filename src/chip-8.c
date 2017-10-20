@@ -1,5 +1,7 @@
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "chip-8.h"
 
@@ -52,6 +54,9 @@ void chip_8_init(chip_8 *chip) {
     for (int addr = 0; addr < 80; addr++) {
         chip->mem[addr] = chip_8_sprites[addr];
     }
+    
+    time_t t;
+    srand((unsigned) time(&t));
 }
 
 #define GET_PREFIX(opcode) ((opcode & 0xf000) >> 16)
@@ -138,9 +143,34 @@ void chip_8_clock_tick(chip_8 *chip) {
         } else if (GET_N(opcode) == 0x6) {
             uint8_t x = chip->v[GET_X(opcode)];
             chip->v[0xf] = x & 0x1;
-            chip->v[GET_X(opcode)] /= 2;
+            chip->v[GET_X(opcode)] >>= 1;
         } else if (GET_N(opcode) == 0x7) {
-            
+            uint8_t x = chip->v[GET_X(opcode)];
+            uint8_t y = chip->v[GET_Y(opcode)];
+            if (y > x) {
+                chip->v[0xf] = 1;
+            } else {
+                chip->v[0xf] = 0;
+            }
+            chip->v[GET_X(opcode)] = y - x;
+        } else if (GET_N(opcode) == 0xe) {
+            uint8_t x = chip->v[GET_X(opcode)];
+            chip->v[0xf] = (x >> 7) & 0x1;
+            chip->v[GET_X(opcode)] <<= 1;
         }
+    } else if (prefix == 0x9) {
+        if (chip->v[GET_X(opcode)] != chip->v[GET_Y(opcode)]) {
+            chip->pc += 2;
+        }
+    } else if (prefix == 0xa) {
+        chip->i = GET_NNN(opcode);
+    } else if (prefix == 0xb) {
+        chip->pc = GET_NNN(opcode) + chip->v[0];
+    } else if (prefix == 0xc) {
+        chip->v[GET_X(opcode)] = (rand() % 256) & GET_NN(opcode);
+    } else if (prefix == 0xd) {
+        uint8_t x = GET_X(opcode);
+        uint8_t y = GET_Y(opcode);
+        uint8_t n = GET_N(opcode);
     }
 }
