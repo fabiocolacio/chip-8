@@ -42,6 +42,8 @@ void chip_8_clock_tick(chip_8 *chip);
 
 int chip_8_key_down(const chip_8 *chip, uint8_t key);
 
+int chip_8_get_pixel(const chip_8 *chip, int x, int y);
+
 #ifdef __cplusplus
 }
 #endif

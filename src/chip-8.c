@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/time.h>
 
 #include "chip-8.h"
 
@@ -191,5 +192,66 @@ void chip_8_clock_tick(chip_8 *chip) {
                 chip->pc += 2;
             }
         }
+    } else if (prefix == 0xf) {
+        if (GET_NN(opcode) == 0x07) {
+            chip->v[GET_X(opcode)] = chip->delay_timer;
+        } else if (GET_NN(opcode) == 0x0a) {
+            int keypress = 0;
+            for (uint8_t key = 0; key < 0x10; key++) {
+                if (chip_8_key_down(chip, key)) {
+                    chip->v[GET_X(opcode)] = 0xff;
+                    keypress = 1;
+                }
+            }
+            if (!keypress) {
+                chip->pc -= 2;
+                return;
+            }
+        } else if (GET_NN(opcode) == 0x15) {
+            chip->delay_timer = chip->v[GET_X(opcode)];
+        } else if (GET_NN(opcode) == 0x18) {
+            chip->sound_timer = chip->v[GET_X(opcode)];
+        } else if (GET_NN(opcode) == 0x1e) {
+            chip->i = chip->v[GET_X(opcode)] + chip->i;
+        } else if (GET_NN(opcode) == 0x29) {
+            chip->i = chip->v[GET_X(opcode)] * 5;
+        } else if (GET_NN(opcode) == 0x33) {
+            uint8_t x = GET_X(opcode);
+			chip->mem[chip->i]	= chip->v[x] / 100;
+			chip->mem[chip->i + 1] = (chip->v[x] / 10) % 10;
+			chip->mem[chip->i + 2] = chip->v[x] % 10;
+        } else if (GET_NN(opcode) == 0x55) {
+            uint8_t x = GET_X(opcode);
+            for (int i = 0; i <= x; i++) {
+                chip->mem[chip->i + i] = chip->v[i];
+            }
+        } else if (GET_NN(opcode) == 0x65) {
+            uint8_t x = GET_X(opcode);
+            for (int i = 0; i <= x; i++) {
+                chip->v[i] = chip->mem[chip->i + i];
+            }
+        }
     }
+    
+    static struct timeval lastFireTime = {.tv_sec = 0, .tv_usec = 0};
+	struct timeval currentTime;
+	struct timeval timeDiff;
+	
+	gettimeofday(&currentTime, NULL);
+	timersub(&currentTime, &lastFireTime, &timeDiff);
+	double totalTime = (timeDiff.tv_sec * 1000000.0 + timeDiff.tv_usec) / 1000000.0;
+	
+	if (totalTime >= 1.0/60.0f) {
+		
+		lastFireTime = currentTime;
+		
+		if (chip->delay_timer > 0) {
+			chip->delay_timer--;
+		}
+		
+		if (chip->sound_timer > 0) {
+			// TODO: play sound here
+			chip->sound_timer--;
+		}
+	}
 }
