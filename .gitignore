@@ -1,2 +1,5 @@
-build
 .DS_Store
+build/
+target/
+doc/
+Cargo.lock
