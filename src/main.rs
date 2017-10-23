@@ -11,5 +11,8 @@ pub fn main() {
         return;
     }
     
-    let chip = Chip8::from_rom_file(&args.get(1).unwrap());
+    let mut chip = Chip8::from_rom_file(&args.get(1).unwrap()).unwrap();
+    loop {
+        chip.tick();
+    }
 }

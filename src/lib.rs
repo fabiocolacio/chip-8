@@ -47,15 +47,15 @@ pub struct Chip8 {
     /// Whenever the delay timer is active as long as it is non-zero.
     /// The timer decrements its value at a rate of 60Hz until it reaches
     /// zero, and de-activates itself.
-    pub delay_timer: u8,
+    pub dt: u8,
     
     /// The Chip8's buzzer sounds as long as the sound timer contains a
     /// non-zero value. It decrements itself at a rate of 60Hz until it
     /// reaches zero and de-activates itself.
-    pub sound_timer: u8,
+    pub st: u8,
     
     /// The stack pointer always points to the top of the stack.
-    pub stack_pointer: u8,
+    pub sp: u8,
     
     /// The stack stores 16-bit vales and has max nesting of 16
     pub stack: [u16; 0x10],
@@ -66,13 +66,17 @@ pub struct Chip8 {
     
     /// The program counter keeps track of which command is to
     /// be executed next.
-    pub program_counter: u16,
+    pub pc: u16,
     
     /// Chip8 computers have a 16-key hexadecimal keypad with keys 0 - F.
     pub input: u8,
     
     /// Chip8 computers have a 64 x 32 pixel display.
     pub display: [u8; DISPLAY_BUFFER_SIZE],
+}
+
+fn unsupported_opcode(opcode: u16) {
+    println!("[WARNING] opcode 0x{:X} is unsupported", opcode);
 }
 
 impl Chip8 {
@@ -96,12 +100,12 @@ impl Chip8 {
         Ok(Chip8 {
             mem: ram,
             v: [0; 0x10],
-            delay_timer: 0,
-            sound_timer: 0,
-            stack_pointer: 0,
+            dt: 0,
+            st: 0,
+            sp: 0,
             stack: [0; 0x10],
             i: 0,
-            program_counter: 0x200,
+            pc: 0x200,
             input: 0,
             display: [0; DISPLAY_BUFFER_SIZE],
         })
@@ -124,14 +128,136 @@ impl Chip8 {
         Chip8 {
             mem: ram,
             v: [0; 0x10],
-            delay_timer: 0,
-            sound_timer: 0,
-            stack_pointer: 0,
+            dt: 0,
+            st: 0,
+            sp: 0,
             stack: [0; 0x10],
             i: 0,
-            program_counter: 0x200,
+            pc: 0x200,
             input: 0,
             display: [0; DISPLAY_BUFFER_SIZE],
+        }
+    }
+    
+    /// Emulates on clock tick for the Chip8
+    pub fn tick(&mut self) {
+        let opcode: u16 = (self.mem[self.pc as usize] as u16) << 8; self.pc += 1;
+        let opcode: u16 = opcode | (self.mem[self.pc as usize] as u16); self.pc += 1;
+        
+        let prefix = ((opcode & 0xf000) >> 12) as u8;
+        let x = ((opcode & 0x0f00) >> 8) as usize;
+        let y = ((opcode & 0x00f0) >> 4) as usize;
+        let n = (opcode & 0x000f) as u8;
+        let nn = (opcode & 0x00ff) as u8;
+        let nnn = (opcode & 0x0fff) as u16;
+                
+        match prefix {
+            0x0 => {
+                match nn {
+                    0xe0 => {
+                        for i in 0 .. DISPLAY_BUFFER_SIZE {
+                            self.display[i] = 0;
+                        }
+                    },
+                    
+                    0xee => {
+                        self.pc = self.stack[self.sp as usize];
+                        self.sp -= 1;
+                    },
+                    
+                    _ => {
+                        unsupported_opcode(opcode);
+                        return;
+                    },
+                }
+            },
+            
+            0x1 => self.pc = nnn,
+            
+            0x2 => {
+                self.sp += 2;
+                self.stack[self.sp as usize] = self.pc;
+                self.pc = nnn;
+            },
+            
+            0x3 => {
+                if self.v[x] == nn {
+                    self.pc += 2;
+                }
+            },
+            
+            0x4 => {
+                if self.v[x] != nn {
+                    self.pc += 2;
+                }
+            },
+            
+            0x5 => {
+                if self.v[x] == self.v[y] {
+                    self.pc += 2;
+                }
+            },
+            
+            0x6 => self.v[x] = nn,
+            
+            0x7 => self.v[x] += nn,
+            
+            0x8 => {
+                match n {
+                    0x1 => self.v[x] |= self.v[y],
+                    
+                    0x2 => self.v[x] &= self.v[y],
+                    
+                    0x3 => self.v[x] ^= self.v[y],
+                    
+                    0x4 => {
+                        if self.v[x] >= 0x80 && self.v[y] >= 0x80 {
+                            self.v[0xf] = 1;
+                        } else {
+                            self.v[0xf] = 0;
+                        }
+                        self.v[x] += self.v[y];
+                    },
+                    
+                    0x5 => {
+                        if self.v[x] > self.v[y] {
+                            self.v[0xf] = 1;
+                        } else {
+                            self.v[0xf] = 0;
+                        }
+                        self.v[x] -= self.v[y];
+                    },
+                    
+                    0x6 => {
+                        self.v[0xf] = self.v[x] & 0x1;
+                        self.v[x] >>= 1;
+                    },
+                    
+                    0x7 => {
+                        if self.v[y] > self.v[x] {
+                            self.v[0xf] = 1;
+                        } else {
+                            self.v[0xf] = 0;
+                        }
+                        self.v[x] = self.v[y] - self.v[x];
+                    }
+                    
+                    0xe => {
+                        self.v[0xf] = (self.v[x] >> 7) & 0x1;
+                        self.v[x] <<= 1;
+                    }
+                    
+                    _ => {
+                        unsupported_opcode(opcode);
+                        return;
+                    },
+                }
+            },
+            
+            _  => {
+                unsupported_opcode(opcode);
+                return;
+            },
         }
     }
 }
