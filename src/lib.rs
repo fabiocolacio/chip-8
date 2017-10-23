@@ -1,6 +1,9 @@
+extern crate rand;
+
 use std::fs::File;
 use std::io::Read;
 use std::io;
+use rand::Rng;
 
 /// The width of the Chip8 display
 pub const DISPLAY_WIDTH: usize = 64;
@@ -251,6 +254,23 @@ impl Chip8 {
                         unsupported_opcode(opcode);
                         return;
                     },
+                }
+            },
+            
+            0x9 => if self.v[x] != self.v[y] { self.pc += 2 },
+            
+            0xa => self.i = nnn,
+            
+            0xb => self.pc = nnn + (self.v[0] as u16),
+            
+            0xc => self.v[x] = nn & rand::thread_rng().gen_range(0x0, 0x100),
+            
+            0xd => {
+                for index in 0 .. n as usize {
+                    let sprite: u8 = self.mem[self.i as usize + index];
+                    let x = self.v[x] as usize;
+                    let y = self.v[y] as usize + index;
+                    self.display[x + (y * DISPLAY_WIDTH / 8)] = sprite;
                 }
             },
             
