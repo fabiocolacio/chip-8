@@ -9,6 +9,7 @@ use rand::Rng;
 pub const DISPLAY_WIDTH: usize = 64;
 /// The height of the Chip8 display
 pub const DISPLAY_HEIGHT: usize = 32;
+/// The buffer contains 8-bit sprites so the size of the buffer is w x h / 8
 const DISPLAY_BUFFER_SIZE: usize = DISPLAY_WIDTH * DISPLAY_HEIGHT / 8;
 
 /// The default fontset for the Chip8 contains sprites for each
@@ -78,8 +79,8 @@ pub struct Chip8 {
     pub display: [u8; DISPLAY_BUFFER_SIZE],
 }
 
-fn unsupported_opcode(opcode: u16) {
-    println!("[WARNING] opcode 0x{:X} is unsupported", opcode);
+fn unsupported_opcode(opcode: u16, pc: u16) {
+    println!("[WARNING] opcode 0x{:X} from pc 0x{:X} is unsupported", opcode, pc);
 }
 
 impl Chip8 {
@@ -169,7 +170,7 @@ impl Chip8 {
                     },
                     
                     _ => {
-                        unsupported_opcode(opcode);
+                        unsupported_opcode(opcode, self.pc);;
                         return;
                     },
                 }
@@ -243,15 +244,15 @@ impl Chip8 {
                             self.v[0xf] = 0;
                         }
                         self.v[x] = self.v[y] - self.v[x];
-                    }
+                    },
                     
                     0xe => {
                         self.v[0xf] = (self.v[x] >> 7) & 0x1;
                         self.v[x] <<= 1;
-                    }
+                    },
                     
                     _ => {
-                        unsupported_opcode(opcode);
+                        unsupported_opcode(opcode, self.pc);;
                         return;
                     },
                 }
@@ -274,8 +275,21 @@ impl Chip8 {
                 }
             },
             
+            0xe => {
+                match nn {
+                    0x9e => if self.input >> self.v[x] & 1 == 1 { self.pc += 2 },
+                    
+                    0xa1 => if self.input >> self.v[x] & 1 == 0 { self.pc += 2 },
+                    
+                    _ => {
+                        unsupported_opcode(opcode, self.pc);;
+                        return;
+                    },
+                }
+            },
+            
             _  => {
-                unsupported_opcode(opcode);
+                unsupported_opcode(opcode, self.pc);;
                 return;
             },
         }
