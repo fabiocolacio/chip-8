@@ -28,7 +28,7 @@ pub fn main() {
         chip8::DISPLAY_WIDTH as u32,
         chip8::DISPLAY_HEIGHT as u32).unwrap();
     
-    let mut data: [u8; chip8::DISPLAY_WIDTH * chip8::DISPLAY_HEIGHT] = [0; chip8::DISPLAY_WIDTH * chip8::DISPLAY_HEIGHT];
+    let mut data: [u8; 3 * chip8::DISPLAY_WIDTH * chip8::DISPLAY_HEIGHT] = [0; 3 * chip8::DISPLAY_WIDTH * chip8::DISPLAY_HEIGHT];
     
     let mut chip = Chip8::from_rom_file(&args.get(1).unwrap()).unwrap();
     loop {
@@ -40,9 +40,13 @@ pub fn main() {
             for x in 0 .. chip8::DISPLAY_WIDTH {
                 let state = chip.get_pixel(x, y);
                 if state {
-                    data[x + (y * chip8::DISPLAY_WIDTH)] = 0xffffff;
+                    data[(x * 3) + (y * chip8::DISPLAY_WIDTH) + 0] = 0xff;
+                    data[(x * 3) + (y * chip8::DISPLAY_WIDTH) + 1] = 0xff;
+                    data[(x * 3) + (y * chip8::DISPLAY_WIDTH) + 2] = 0xff;
                 } else {
-                    data[x + (y * chip8::DISPLAY_WIDTH)] = 0x000000;
+                    data[(x * 3) + (y * chip8::DISPLAY_WIDTH) + 0] = 0x00;
+                    data[(x * 3) + (y * chip8::DISPLAY_WIDTH) + 1] = 0x00;
+                    data[(x * 3) + (y * chip8::DISPLAY_WIDTH) + 2] = 0x00;
                 }
             }
         }
@@ -50,5 +54,9 @@ pub fn main() {
         texture.update(None, &data, chip8::DISPLAY_WIDTH);
         canvas.copy(&texture, None, None);
         canvas.present();
+        
+        for i in 0 .. chip8::DISPLAY_WIDTH * chip8::DISPLAY_HEIGHT * 3 {
+            data[i] = 0;
+        }
     }
 }
