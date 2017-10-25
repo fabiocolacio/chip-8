@@ -283,12 +283,21 @@ impl Chip8 {
             0xd => {
                 for index in 0 .. n as usize {
                     let sprite: u8 = self.mem[self.i as usize + index];
+                    
                     let x = (self.v[x] as usize % DISPLAY_WIDTH);
                     let y = (self.v[y] as usize % DISPLAY_HEIGHT) + index;
                     
+                    let index = ((x / 8) + (y * DISPLAY_WIDTH / 8)) % DISPLAY_BUFFER_SIZE;
+                    
                     println!("sprite: {:b} x-coord: {} y-coord: {}", sprite, x, y);
                     
-                    self.display[((x/8) + (y * DISPLAY_WIDTH / 8)) % DISPLAY_BUFFER_SIZE] = sprite;
+                    if x % 8 == 0 {
+                        self.display[index] ^= sprite;
+                    } else {
+                        println!("x % 8 = {}", x % 8);
+                        self.display[index] ^=  sprite >> (x % 8);
+                        self.display[index + 1] ^= sprite << (x % 8);
+                    }
                 }
             },
             
