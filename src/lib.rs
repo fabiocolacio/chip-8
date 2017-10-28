@@ -9,8 +9,7 @@ use rand::Rng;
 pub const DISPLAY_WIDTH: usize = 64;
 /// The height of the Chip8 display
 pub const DISPLAY_HEIGHT: usize = 32;
-/// The buffer contains 8-bit sprites so the size of the buffer is w x h / 8
-const DISPLAY_BUFFER_SIZE: usize = DISPLAY_WIDTH * DISPLAY_HEIGHT / 8;
+pub const DISPLAY_SIZE: usize = DISPLAY_WIDTH * DISPLAY_HEIGHT;
 
 /// The default fontset for the Chip8 contains sprites for each
 /// hexadecimal digit (0 - F).
@@ -76,16 +75,13 @@ pub struct Chip8 {
     input: [bool; 0x10],
     
     /// Chip8 computers have a 64 x 32 pixel display.
-    display: [u8; DISPLAY_BUFFER_SIZE],
+    display: [[bool; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
     
     /// Used to keep the timers ticking down at 60Hz
     last_cycle: Instant,
 }
 
 /// Print a warning that the given opcode was unsupported
-///
-/// @param opcode the opcode that was attempted
-/// @param pc the position of the program counter where the opcode was found
 fn unsupported_opcode(opcode: u16, pc: u16) {
     println!("[WARNING] opcode 0x{:X} from pc 0x{:X} is unsupported", opcode, pc);
 }
@@ -118,7 +114,7 @@ impl Chip8 {
             i: 0,
             pc: 0x200,
             input: [false; 0x10],
-            display: [0; DISPLAY_BUFFER_SIZE],
+            display: [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
             last_cycle: Instant::now(),
         })
     }
@@ -147,7 +143,7 @@ impl Chip8 {
             i: 0,
             pc: 0x200,
             input: [false; 0x10],
-            display: [0; DISPLAY_BUFFER_SIZE],
+            display: [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
             last_cycle: Instant::now(),
         }
     }
@@ -164,15 +160,17 @@ impl Chip8 {
         let nn = (opcode & 0x00ff) as u8;
         let nnn = (opcode & 0x0fff) as u16;
         
-        println!("pc: {} sp: {} i: {}", self.pc, self.sp, self.i);
-        println!("opcode: 0x{:X} Vx: {} Vy: {}", opcode, self.v[x], self.v[y]);
+        //println!("pc: {} sp: {} i: {}", self.pc, self.sp, self.i);
+        //println!("opcode: 0x{:X} Vx: {} Vy: {}", opcode, self.v[x], self.v[y]);
         
         match prefix {
             0x0 => {
                 match nn {
                     0xe0 => {
-                        for i in 0 .. DISPLAY_BUFFER_SIZE {
-                            self.display[i] = 0x00;
+                        for y in 0 .. DISPLAY_HEIGHT {
+                            for x in 0 .. DISPLAY_WIDTH {
+                                self.display[y][x] = false;
+                            }
                         }
                     },
                     
@@ -191,7 +189,7 @@ impl Chip8 {
             0x1 => self.pc = nnn,
             
             0x2 => {
-                self.sp += 2;
+                self.sp += 1;
                 self.stack[self.sp as usize] = self.pc;
                 self.pc = nnn;
             },
@@ -284,19 +282,15 @@ impl Chip8 {
                 for index in 0 .. n as usize {
                     let sprite: u8 = self.mem[self.i as usize + index];
                     
-                    let x = (self.v[x] as usize % DISPLAY_WIDTH);
-                    let y = (self.v[y] as usize % DISPLAY_HEIGHT) + index;
-                    
-                    let index = ((x / 8) + (y * DISPLAY_WIDTH / 8)) % DISPLAY_BUFFER_SIZE;
-                    
-                    println!("sprite: {:b} x-coord: {} y-coord: {}", sprite, x, y);
-                    
-                    if x % 8 == 0 {
-                        self.display[index] ^= sprite;
-                    } else {
-                        println!("x % 8 = {}", x % 8);
-                        self.display[index] ^=  sprite >> (x % 8);
-                        self.display[index + 1] ^= sprite << (x % 8);
+                    let x = self.v[x] as usize;
+                    let y = self.v[y] as usize + index;
+
+                    for pixel_index in 0 .. 8 {
+                        let x = x + pixel_index;
+                        let pixel_index = 7 - pixel_index;
+                        let pixel = ((sprite >> pixel_index) & 0x1) == 0x1;
+                        self.v[0xf] = (self.display[y % DISPLAY_HEIGHT][x % DISPLAY_WIDTH] && pixel) as u8;
+                        self.display[y % DISPLAY_HEIGHT][x % DISPLAY_WIDTH] ^= pixel;
                     }
                 }
             },
@@ -379,13 +373,12 @@ impl Chip8 {
             if self.st > 0 { self.st -= 1 }
         }
         
-        println!("cycle done!\n");
+        //println!("cycle done!\n");
     }
     
     /// Check if the the pixel at the given (x, y) location is on or off
     pub fn get_pixel(&self, x: usize, y: usize) -> bool {
-        let sprite = self.display[x/8 + (y * DISPLAY_WIDTH / 8)];
-        ((sprite >> (7 - (x % 8))) & 1) == 1
+        self.display[y][x]
     }
     
     /// Check if the button of the given hex value is on or off

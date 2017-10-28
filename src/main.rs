@@ -61,8 +61,8 @@ pub fn main() {
             }
         }
         
-        texture.update(None, &data, chip8::DISPLAY_WIDTH * 3);
-        canvas.copy(&texture, None, None);
+        texture.update(None, &data, chip8::DISPLAY_WIDTH * 3).unwrap();
+        canvas.copy(&texture, None, None).unwrap();
         canvas.present();
         
         for i in 0 .. chip8::DISPLAY_WIDTH * chip8::DISPLAY_HEIGHT * 3 {
