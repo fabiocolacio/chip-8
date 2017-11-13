@@ -7,8 +7,11 @@ use rand::Rng;
 
 /// The width of the Chip8 display
 pub const DISPLAY_WIDTH: usize = 64;
+
 /// The height of the Chip8 display
 pub const DISPLAY_HEIGHT: usize = 32;
+
+/// The total number of pixels in the Chip8 display buffer
 pub const DISPLAY_SIZE: usize = DISPLAY_WIDTH * DISPLAY_HEIGHT;
 
 /// The default fontset for the Chip8 contains sprites for each
@@ -166,6 +169,7 @@ impl Chip8 {
         match prefix {
             0x0 => {
                 match nn {
+                    // 00e0 clears the display
                     0xe0 => {
                         for y in 0 .. DISPLAY_HEIGHT {
                             for x in 0 .. DISPLAY_WIDTH {
@@ -174,9 +178,10 @@ impl Chip8 {
                         }
                     },
                     
+                    // 00ee returns from a subroutine
                     0xee => {
-                        self.pc = self.stack[self.sp as usize];
                         self.sp -= 1;
+                        self.pc = self.stack[self.sp as usize];
                     },
                     
                     _ => {
@@ -186,78 +191,70 @@ impl Chip8 {
                 }
             },
             
+            // 1nnn jumps to location nnn
             0x1 => self.pc = nnn,
             
+            // 2nnn calls the subroutine at nnn
             0x2 => {
-                self.sp += 1;
                 self.stack[self.sp as usize] = self.pc;
+                self.sp += 1;
                 self.pc = nnn;
             },
             
-            0x3 => {
-                if self.v[x] == nn {
-                    self.pc += 2;
-                }
-            },
+            // 3xkk skips the next instruction if Vx == kk
+            0x3 => if self.v[x] == nn { self.pc += 2 },
             
-            0x4 => {
-                if self.v[x] != nn {
-                    self.pc += 2;
-                }
-            },
+            // 4xkk skips next instruction if Vx != kk
+            0x4 => if self.v[x] != nn { self.pc += 2 },
             
-            0x5 => {
-                if self.v[x] == self.v[y] {
-                    self.pc += 2;
-                }
-            },
+            // 5xy0 skips next instruction if Vx == Vy
+            0x5 => if self.v[x] == self.v[y] { self.pc += 2 },
             
+            // 6xkk sets Vx = kk
             0x6 => self.v[x] = nn,
             
+            // 7xkk sets Vx = Vx + kk
             0x7 => self.v[x] = self.v[x].wrapping_add(nn),
             
             0x8 => {
                 match n {
+                    // 8xy0 sets Vx = Vy
                     0x0 => self.v[x] = self.v[y],
                     
+                    // 8xy1 sets Vx = Vx OR Vy
                     0x1 => self.v[x] |= self.v[y],
                     
+                    // 8xy2 sets Vx = Vx AND Vy
                     0x2 => self.v[x] &= self.v[y],
                     
+                    // 8xy3 sets Vx = Vx XOR Vy
                     0x3 => self.v[x] ^= self.v[y],
                     
+                    // 8xy4 sets Vx = Vx + Vy, sets Vf = carry
                     0x4 => {
-                        if self.v[x] >= 0x80 && self.v[y] >= 0x80 {
-                            self.v[0xf] = 1;
-                        } else {
-                            self.v[0xf] = 0;
-                        }
+                        self.v[0xf] = (self.v[y] > (255 - self.v[x])) as u8;
                         self.v[x] = self.v[x].wrapping_add(self.v[y]);
                     },
                     
+                    // 8xy5 sets Vx = Vx - Vy, sets Vf = not borrow
                     0x5 => {
-                        if self.v[x] > self.v[y] {
-                            self.v[0xf] = 1;
-                        } else {
-                            self.v[0xf] = 0;
-                        }
+                        self.v[0xf] =  (self.v[x] >= self.v[y]) as u8;
                         self.v[x] = self.v[x].wrapping_sub(self.v[y]);
                     },
                     
+                    // 8xy6 sets Vx = Vx >> 1, and stores least significant bit in Vf
                     0x6 => {
                         self.v[0xf] = self.v[x] & 0x1;
                         self.v[x] = self.v[x].wrapping_shr(1);
                     },
                     
+                    // 8xy7 sets Vx = Vy - Vx, and sets Vf = not borrow
                     0x7 => {
-                        if self.v[y] > self.v[x] {
-                            self.v[0xf] = 1;
-                        } else {
-                            self.v[0xf] = 0;
-                        }
+                        self.v[0xf] = (self.v[y] >= self.v[x]) as u8;
                         self.v[x] = self.v[y].wrapping_sub(self.v[x]);
                     },
                     
+                    // 8xye sets Vx = Vx << 1, and stores most significant bit in Vf
                     0xe => {
                         self.v[0xf] = (self.v[x] >> 7) & 0x1;
                         self.v[x] = self.v[x].wrapping_shl(1);
@@ -270,6 +267,7 @@ impl Chip8 {
                 }
             },
             
+            // Skip the next instruction of Vx != Vy
             0x9 => if self.v[x] != self.v[y] { self.pc += 2 },
             
             0xa => self.i = nnn,
@@ -372,8 +370,6 @@ impl Chip8 {
             if self.dt > 0 { self.dt -= 1 }
             if self.st > 0 { self.st -= 1 }
         }
-        
-        //println!("cycle done!\n");
     }
     
     /// Check if the the pixel at the given (x, y) location is on or off
@@ -384,5 +380,10 @@ impl Chip8 {
     /// Check if the button of the given hex value is on or off
     pub fn get_input(&self, key: usize) -> bool {
         self.input[key]
+    }
+    
+    /// Set the value of a key
+    pub fn set_input(&mut self, key: usize, value: bool) {
+      self.input[key] = value;
     }
 }

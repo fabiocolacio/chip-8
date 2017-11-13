@@ -1,6 +1,8 @@
 extern crate sdl2;
 extern crate chip8;
 
+use sdl2::keyboard::Scancode;
+
 use chip8::Chip8;
 
 pub fn main() {
@@ -41,10 +43,28 @@ pub fn main() {
                 _ => {}
             }
         }
-    
-        canvas.clear();
+        
+        let keyboard_state = event_pump.keyboard_state();
+        chip.set_input(0x1, keyboard_state.is_scancode_pressed(Scancode::Num1));
+        chip.set_input(0x2, keyboard_state.is_scancode_pressed(Scancode::Num2));
+        chip.set_input(0x3, keyboard_state.is_scancode_pressed(Scancode::Num3));
+        chip.set_input(0xC, keyboard_state.is_scancode_pressed(Scancode::Num4));
+        chip.set_input(0x4, keyboard_state.is_scancode_pressed(Scancode::Q));
+        chip.set_input(0x5, keyboard_state.is_scancode_pressed(Scancode::W));
+        chip.set_input(0x6, keyboard_state.is_scancode_pressed(Scancode::E));
+        chip.set_input(0xD, keyboard_state.is_scancode_pressed(Scancode::R));
+        chip.set_input(0x7, keyboard_state.is_scancode_pressed(Scancode::A));
+        chip.set_input(0x8, keyboard_state.is_scancode_pressed(Scancode::S));
+        chip.set_input(0x9, keyboard_state.is_scancode_pressed(Scancode::D));
+        chip.set_input(0xE, keyboard_state.is_scancode_pressed(Scancode::F));
+        chip.set_input(0xA, keyboard_state.is_scancode_pressed(Scancode::Z));
+        chip.set_input(0x0, keyboard_state.is_scancode_pressed(Scancode::X));
+        chip.set_input(0xB, keyboard_state.is_scancode_pressed(Scancode::C));
+        chip.set_input(0xF, keyboard_state.is_scancode_pressed(Scancode::V));
         
         chip.tick();
+        
+        canvas.clear();
         
         for y in 0 .. chip8::DISPLAY_HEIGHT {
             for x in 0 .. chip8::DISPLAY_WIDTH {
