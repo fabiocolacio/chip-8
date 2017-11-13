@@ -261,7 +261,7 @@ impl Chip8 {
                     },
                     
                     _ => {
-                        unsupported_opcode(opcode, self.pc);;
+                        unsupported_opcode(opcode, self.pc);
                         return;
                     },
                 }
@@ -270,12 +270,17 @@ impl Chip8 {
             // Skip the next instruction of Vx != Vy
             0x9 => if self.v[x] != self.v[y] { self.pc += 2 },
             
+            // Sets i to the address at nnn
             0xa => self.i = nnn,
             
+            // Jump to address nnn + v0
             0xb => self.pc = nnn.wrapping_add(self.v[0] as u16),
             
+            // Sets Vx to NN ANDed with a random byte
             0xc => self.v[x] = nn & rand::thread_rng().gen_range(0x0, 0xff),
             
+            // Draws a sprite at location (Vx, Vy) of height N.
+            // The sprite is taken from memory address stored in register i
             0xd => {
                 for index in 0 .. n as usize {
                     let sprite: u8 = self.mem[self.i as usize + index];
@@ -295,8 +300,10 @@ impl Chip8 {
             
             0xe => {
                 match nn {
+                    // Skips the next instruction if the key of index Vx is pressed
                     0x9e => if self.input[self.v[x] as usize] { self.pc += 2 },
                     
+                    // Skips the next instruction if the key of index Vx is not pressed
                     0xa1 => if self.input[self.v[x] as usize] { self.pc += 2 },
                     
                     _ => {
@@ -308,8 +315,10 @@ impl Chip8 {
             
             0xf => {
                 match nn {
+                    // Sets Vx to the value of the delay timer
                     0x07 => self.v[x] = self.dt,
                     
+                    // Wait for a key to be pressed, and store its index in Vx
                     0x0a => {
                         let mut pressed = false;
                         for index in 0 .. 0x10 {
@@ -323,14 +332,22 @@ impl Chip8 {
                         }
                     },
                     
+                    // Sets the delay timer to Vx
                     0x15 => self.dt = self.v[x],
                     
+                    // Sets the sound timer to Vx
                     0x18 => self.st = self.v[x],
                     
+                    // Add Vx to the address in register i
                     0x1e => self.i = self.i.wrapping_add(self.v[x] as u16),
                     
+                    // Sets the register i to the address of sprite Vx
                     0x29 => self.i = 5 * self.v[x] as u16,
                     
+                    // Store the binary-coded decimal representation of Vx.
+                    // Most significant 3 digits are stored at i.
+                    // Middle digits is stored at i + 1.
+                    // Least significant digit is stored at i + 2.
                     0x33 => {
                         let vx = self.v[x];
                         let i = self.i as usize;
@@ -339,12 +356,14 @@ impl Chip8 {
                         self.mem[i + 2] = vx % 10;
                     },
                     
+                    // Stores registers V0 - Vx into ram starting at location i.
                     0x55 => {
                         for index in 0 .. x + 1 {
                             self.mem[index + self.i as usize] = self.v[index];
                         }
                     },
                     
+                    // Fill registers V0 - Vx with data in ram at location i.
                     0x65 => {
                         for index in 0 .. x + 1 {
                             self.v[index] = self.mem[index + self.i as usize];
