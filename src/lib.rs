@@ -161,9 +161,6 @@ impl Chip8 {
         let nn = (opcode & 0x00ff) as u8;
         let nnn = (opcode & 0x0fff) as u16;
         
-        //println!("pc: {} sp: {} i: {}", self.pc, self.sp, self.i);
-        //println!("opcode: 0x{:X} Vx: {} Vy: {}", opcode, self.v[x], self.v[y]);
-        
         match prefix {
             0x0 => {
                 match nn {
@@ -285,14 +282,20 @@ impl Chip8 {
                     
                     let x = self.v[x] as usize;
                     let y = self.v[y] as usize + index;
+                    
+                    let mut collision = false;
 
                     for pixel_index in 0 .. 8 {
                         let x = x + pixel_index;
                         let pixel_index = 7 - pixel_index;
                         let pixel = ((sprite >> pixel_index) & 0x1) == 0x1;
-                        self.v[0xf] = (self.display[y % DISPLAY_HEIGHT][x % DISPLAY_WIDTH] && pixel) as u8;
+                        if (self.display[y % DISPLAY_HEIGHT][x % DISPLAY_WIDTH] && pixel) {
+                            collision = true;
+                        }
                         self.display[y % DISPLAY_HEIGHT][x % DISPLAY_WIDTH] ^= pixel;
                     }
+                    
+                    self.v[0xf] = collision as u8;
                 }
             },
             
