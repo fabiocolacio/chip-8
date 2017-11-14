@@ -63,15 +63,13 @@ pub struct Chip8 {
     /// The stack pointer always points to the top of the stack.
     sp: u8,
     
-    /// The stack stores 16-bit vales and has max nesting of 16
+    /// The stack is used primarily for handling calls to subroutines
     stack: [u16; 0x10],
     
-    /// The I register is a special 16-bit register used for storing
-    /// memory addresses.
+    /// The 16-bit Index register stores memory addresses.
     i: u16,
     
-    /// The program counter keeps track of which command is to
-    /// be executed next.
+    /// The program counter keeps track of which command to execute next.
     pc: u16,
     
     /// Chip8 computers have a 16-key hexadecimal keypad with keys 0 - F.
@@ -384,7 +382,7 @@ impl Chip8 {
         }
         
         // Timers decrement themselves at a rate of 60Hz
-        if self.last_cycle.elapsed() > (Duration::new(1, 0) / 60) {
+        if self.last_cycle.elapsed() >= (Duration::new(1, 0) / 60) {
             self.last_cycle = Instant::now();
             if self.dt > 0 { self.dt -= 1 }
             if self.st > 0 { self.st -= 1 }
