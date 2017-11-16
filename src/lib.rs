@@ -289,7 +289,7 @@ impl Chip8 {
                         let x = x + pixel_index;
                         let pixel_index = 7 - pixel_index;
                         let pixel = ((sprite >> pixel_index) & 0x1) == 0x1;
-                        if (self.display[y % DISPLAY_HEIGHT][x % DISPLAY_WIDTH] && pixel) {
+                        if self.display[y % DISPLAY_HEIGHT][x % DISPLAY_WIDTH] && pixel {
                             collision = true;
                         }
                         self.display[y % DISPLAY_HEIGHT][x % DISPLAY_WIDTH] ^= pixel;
@@ -406,4 +406,7 @@ impl Chip8 {
     pub fn set_input(&mut self, key: usize, value: bool) {
       self.input[key] = value;
     }
+    
+    /// Returns true if the chip should be playing a sound
+    pub fn sound_status(&self) -> bool { self.st > 0 }
 }

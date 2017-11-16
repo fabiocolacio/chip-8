@@ -1,12 +1,15 @@
 extern crate sdl2;
 extern crate chip8;
 
+mod buzzer;
+
 use std::time::{Duration, Instant};
 use sdl2::keyboard::Scancode;
 use sdl2::event::Event;
 use sdl2::pixels::PixelFormatEnum;
 
 use chip8::{ Chip8, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_SIZE };
+use buzzer::Buzzer;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -18,7 +21,10 @@ fn main() {
     
     let sdl_ctx = sdl2::init().unwrap();
     let vid_ctx = sdl_ctx.video().unwrap();
+    let audio_ctx = sdl_ctx.audio().unwrap();
     let mut event_pump = sdl_ctx.event_pump().unwrap();
+    
+    let buzzer = Buzzer::new(&audio_ctx);
     
     let window = vid_ctx
         .window("Chip8", (DISPLAY_WIDTH * 10) as u32, (DISPLAY_HEIGHT * 10) as u32)
@@ -66,8 +72,8 @@ fn main() {
         chip.set_input(0xB, keyboard_state.is_scancode_pressed(Scancode::C));
         chip.set_input(0xF, keyboard_state.is_scancode_pressed(Scancode::V));
         
-        // Run the emulator at 3MHz
-        if dt.elapsed() >= Duration::new(0, 333333) {
+        // Run the emulator at 1MHz
+        if dt.elapsed() >= Duration::from_millis(1) {
             dt = Instant::now();
             chip.tick();
         }
@@ -82,6 +88,8 @@ fn main() {
                 }
             }
         }
+        
+        buzzer.toggle(chip.sound_status());
         
         texture.update(None, &data, DISPLAY_WIDTH * 3).unwrap();
         canvas.clear();
