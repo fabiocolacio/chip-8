@@ -39,7 +39,7 @@ pub const FONT: [u8; 80] = [
 ];
 
 /// A Structure that emulates the architecture of the Chip8 computer.
-pub struct Chip8 {
+pub struct Chip8<A> where A: Fn(bool) {
     /// The Chip8 has 4KB of RAM.
     ///
     /// The original Interpreter and fonts takes up the first
@@ -80,6 +80,10 @@ pub struct Chip8 {
     
     /// Used to keep the timers ticking down at 60Hz
     last_cycle: Instant,
+    
+    /// Optional callback function that the emulator uses to play sound on
+    /// the host system.
+    audio_callback: Option<A>,
 }
 
 /// Print a warning that the given opcode was unsupported
@@ -87,9 +91,9 @@ fn unsupported_opcode(opcode: u16, pc: u16) {
     println!("[WARNING] opcode 0x{:X} from pc 0x{:X} is unsupported", opcode, pc);
 }
 
-impl Chip8 {
+impl<A> Chip8<A> where A: Fn(bool) {
     /// Create a Chip8 device and load the specified ROM file into it.
-    pub fn from_rom_file(rom_file: &str) -> std::io::Result<Chip8> {
+    pub fn from_rom_file(rom_file: &str) -> std::io::Result<Chip8<A>> {
         let mut ram: [u8; 0x1000] = [0; 0x1000];
         
         // load rom data into memory
@@ -117,11 +121,12 @@ impl Chip8 {
             input: [false; 0x10],
             display: [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
             last_cycle: Instant::now(),
+            audio_callback: None,
         })
     }
     
     /// Create a Chip8 device and load the given ROM data into it.
-    pub fn with_rom_data(rom_data: [u8; 0xe00]) -> Chip8 {
+    pub fn with_rom_data(rom_data: [u8; 0xe00]) -> Chip8<A> {
         let mut ram: [u8; 0x1000] = [0; 0x1000];
         
         // load rom data into memory
@@ -146,6 +151,7 @@ impl Chip8 {
             input: [false; 0x10],
             display: [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
             last_cycle: Instant::now(),
+            audio_callback: None,
         }
     }
     
@@ -385,11 +391,13 @@ impl Chip8 {
         }
         
         // Timers decrement themselves at a rate of 60Hz
-        if self.last_cycle.elapsed() >= (Duration::new(1, 0) / 60) {
+        if self.last_cycle.elapsed() >= Duration::from_millis(17) {
             self.last_cycle = Instant::now();
-            if self.dt > 0 { self.dt -= 1 }
-            if self.st > 0 { self.st -= 1 }
+            if self.dt > 0 { self.dt -= 1; }
+            if self.st > 0 { self.st -= 1; }
         }
+        
+        self.audio_callback.as_ref().map(|f|f(self.sound_status()));
     }
     
     /// Check if the the pixel at the given (x, y) location is on or off
@@ -402,11 +410,27 @@ impl Chip8 {
         self.input[key]
     }
     
-    /// Set the value of a key
+    /// Set the value of a key on the keypad
     pub fn set_input(&mut self, key: usize, value: bool) {
       self.input[key] = value;
     }
     
     /// Returns true if the chip should be playing a sound
+    /// 
+    /// If you would like to handle sound yourself, and manually poll
+    /// the emulator to determine when to do so, use this function.
+    /// Optionally, you can use ``set_audio_callback()`` to define a function
+    /// for the emulator to call to play the sounds automatically.
     pub fn sound_status(&self) -> bool { self.st > 0 }
+    
+    /// Define a callback function that the chip can use to play sounds on
+    /// the host machine when necessary.
+    ///
+    /// The function's parameter is a boolean. Anytime the emulator wants
+    /// to play a sound, it will call this function with a true parameter
+    /// to toggle the sound on. It will call this function with a false
+    /// parameter to toggle the sound off.
+    pub fn set_audio_callback(&mut self, callback: A) {
+        self.audio_callback = Some(callback);
+    }
 }

@@ -46,7 +46,7 @@ impl Buzzer {
         Buzzer { device }
     }
 
-    pub fn toggle(&self, state: bool) {
+    pub fn set(&self, state: bool) {
         if state {
             self.device.resume();
         } else {

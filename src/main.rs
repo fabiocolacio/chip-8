@@ -45,6 +45,8 @@ fn main() {
     
     let mut chip = Chip8::from_rom_file(&args.get(1).unwrap()).unwrap();
     
+    chip.set_audio_callback(|state| buzzer.set(state));
+    
     'mainloop: loop {
         for event in event_pump.poll_iter() {
             match event {
@@ -89,7 +91,7 @@ fn main() {
             }
         }
         
-        buzzer.toggle(chip.sound_status());
+        //buzzer.toggle(chip.sound_status());
         
         texture.update(None, &data, DISPLAY_WIDTH * 3).unwrap();
         canvas.clear();
