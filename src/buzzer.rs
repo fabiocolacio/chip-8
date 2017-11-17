@@ -1,5 +1,6 @@
 extern crate sdl2;
 
+use sdl2::AudioSubsystem;
 use sdl2::audio::{AudioCallback, AudioSpecDesired, AudioDevice};
 
 struct SquareWave {
@@ -28,7 +29,7 @@ pub struct Buzzer {
 }
 
 impl Buzzer {
-    pub fn new(audio_subsystem: &sdl2::AudioSubsystem) -> Buzzer {
+    pub fn new(audio_subsystem: &AudioSubsystem) -> Buzzer {
         let spec = AudioSpecDesired {
             freq: Some(3000),
             channels: Some(1),
@@ -52,13 +53,5 @@ impl Buzzer {
         } else {
             self.device.pause();
         }
-    }
-
-    pub fn play(&self) {
-        self.device.resume();
-    }
-  
-    pub fn pause(&self) {
-        self.device.pause();
     }
 }

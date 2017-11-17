@@ -160,6 +160,21 @@ impl<A> Chip8<A> where A: Fn(bool) {
         let opcode: u16 = (self.mem[self.pc as usize] as u16) << 8; self.pc += 1;
         let opcode: u16 = opcode | (self.mem[self.pc as usize] as u16); self.pc += 1;
         
+        // Execute the instruction at PC
+        self.execute_opcode(opcode);
+        
+        // Timers decrement themselves at a rate of 60Hz
+        if self.last_cycle.elapsed() >= Duration::from_millis(17) {
+            self.last_cycle = Instant::now();
+            if self.dt > 0 { self.dt -= 1; }
+            if self.st > 0 { self.st -= 1; }
+        }
+        
+        self.audio_callback.as_ref().map(|f|f(self.sound_status()));
+    }
+    
+    /// Executes the given opcode
+    fn execute_opcode(&mut self, opcode: u16) {
         let prefix = ((opcode & 0xf000) >> 12) as u8;
         let x = ((opcode & 0x0f00) >> 8) as usize;
         let y = ((opcode & 0x00f0) >> 4) as usize;
@@ -389,15 +404,21 @@ impl<A> Chip8<A> where A: Fn(bool) {
                 return;
             },
         }
-        
-        // Timers decrement themselves at a rate of 60Hz
-        if self.last_cycle.elapsed() >= Duration::from_millis(17) {
-            self.last_cycle = Instant::now();
-            if self.dt > 0 { self.dt -= 1; }
-            if self.st > 0 { self.st -= 1; }
-        }
-        
-        self.audio_callback.as_ref().map(|f|f(self.sound_status()));
+    }
+    
+    /// Get the value of the given register
+    pub fn get_v(&self, register: usize) -> u8 {
+        self.v[register]
+    }
+    
+    /// Get the value of the sound timer
+    pub fn get_st(&self) -> u8 {
+        self.st
+    }
+    
+    /// Get the value of the delay timer
+    pub fn get_dt(&self) -> u8 {
+        self.dt
     }
     
     /// Check if the the pixel at the given (x, y) location is on or off
