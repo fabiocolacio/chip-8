@@ -30,7 +30,7 @@ impl Screen {
     
     pub fn set_scale(&mut self, x_scale: u32, y_scale: u32) {
         let window_size = (DISPLAY_WIDTH as u32 * x_scale, DISPLAY_HEIGHT as u32 * y_scale);
-        self.canvas.set_scale(x_scale as f32, y_scale as f32);    
+        self.canvas.set_scale(x_scale as f32, y_scale as f32).unwrap();    
         self.canvas.window_mut().set_size(window_size.0, window_size.1).unwrap();
     }
     

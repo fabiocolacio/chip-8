@@ -46,15 +46,14 @@ fn main() {
     
     // setup chip-8 emulator structure
     let mut chip = Chip8::from_rom_file(&args.get(1).unwrap()).unwrap();
-    chip.set_audio_callback(|state| buzzer.set(state));
     
     'mainloop: loop {
         let dt = last_cycle.elapsed();
     
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit {..} => break 'mainloop,
-                _ => {}
+                Event::Quit{ .. } => break 'mainloop,
+                _ => (),
             }
         }
         
@@ -65,26 +64,27 @@ fn main() {
         if dt >= clock_speed {
             last_cycle = Instant::now();
             chip.tick();
-        }
-        
-        // update window with chip-8 graphics
-        for y in 0 .. DISPLAY_HEIGHT {
-            for x in 0 .. DISPLAY_WIDTH {
-                let color =  if chip.get_pixel(x, y) {
-                    on_color
-                } else {
-                    off_color
-                };
-                
-                window.set_pixel(color, x as i32, y as i32);
+            
+            // update the host's buzzer with the state of the chip's sound timer
+            buzzer.set(chip.sound_status());
+            
+            // update host's window with chip's graphics
+            for y in 0 .. DISPLAY_HEIGHT {
+                for x in 0 .. DISPLAY_WIDTH {
+                    let color =  if chip.get_pixel(x, y) {
+                        on_color
+                    } else {
+                        off_color
+                    };
+                    window.set_pixel(color, x as i32, y as i32);
+                }
             }
+            window.update();
         }
-        window.update();
     }
 }
 
-fn update_keypad<A>(chip: &mut Chip8<A>, event_pump: &sdl2::EventPump)
-                    where A: Fn(bool) {
+fn update_keypad(chip: &mut Chip8, event_pump: &sdl2::EventPump) {
     let keyboard_state = event_pump.keyboard_state();
     chip.set_input(0x1, keyboard_state.is_scancode_pressed(Scancode::Num1));
     chip.set_input(0x2, keyboard_state.is_scancode_pressed(Scancode::Num2));
