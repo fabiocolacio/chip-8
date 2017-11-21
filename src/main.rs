@@ -57,13 +57,15 @@ fn main() {
             }
         }
         
-        // update the state of each key of the emulator's keyboard
-        update_keypad(&mut chip, &event_pump);
-        
         // run the emulator at at the given clock speed
         if dt >= clock_speed {
             last_cycle = Instant::now();
-            chip.tick();
+            
+            // update the state of each key of the emulator's keyboard
+            update_keypad(&mut chip, &event_pump);
+            
+            // run one clock cycle
+            chip.tick();  
             
             // update the host's buzzer with the state of the chip's sound timer
             buzzer.set(chip.sound_status());

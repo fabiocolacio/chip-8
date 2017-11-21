@@ -438,3 +438,97 @@ impl Chip8 {
         self.st > 0
     }
 }
+
+impl std::fmt::Display for Chip8 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f,
+            "REGISTERS \n\
+             ========= \n\
+             V0 = {} \n\
+             V1 = {} \n\
+             V2 = {} \n\
+             V3 = {} \n\
+             V4 = {} \n\
+             V5 = {} \n\
+             V6 = {} \n\
+             V7 = {} \n\
+             V8 = {} \n\
+             V9 = {} \n\
+             VA = {} \n\
+             VB = {} \n\
+             VC = {} \n\
+             VD = {} \n\
+             VE = {} \n\
+             VF = {} \n\
+             \n\
+             TIMERS \n\
+             ====== \n\
+             Delay = {} \n\
+             Sound = {} \n\
+             \n\
+             STACK \n\
+             ===== \n\
+             Stack Pointer = {} \n\
+             Stack[0] = {} \n\
+             Stack[1] = {} \n\
+             Stack[2] = {} \n\
+             Stack[3] = {} \n\
+             Stack[4] = {} \n\
+             Stack[5] = {} \n\
+             Stack[6] = {} \n\
+             Stack[7] = {} \n\
+             Stack[8] = {} \n\
+             Stack[9] = {} \n\
+             Stack[A] = {} \n\
+             Stack[B] = {} \n\
+             Stack[C] = {} \n\
+             Stack[D] = {} \n\
+             Stack[E] = {} \n\
+             Stack[F] = {} \n\
+             \n\
+             Index \n\
+             ===== \n\
+             I-Register = {} \n\
+             \n\
+             Program Counter \n\
+             =============== \n\
+             PC = {} \n",
+             self.v[0],
+             self.v[1],
+             self.v[2],
+             self.v[3],
+             self.v[4],
+             self.v[5],
+             self.v[6],
+             self.v[7],
+             self.v[8],
+             self.v[9],
+             self.v[10],
+             self.v[11],
+             self.v[12],
+             self.v[13],
+             self.v[14],
+             self.v[15],
+             self.dt,
+             self.st,
+             self.sp,
+             self.stack[0],
+             self.stack[1],
+             self.stack[2],
+             self.stack[3],
+             self.stack[4],
+             self.stack[5],
+             self.stack[6],
+             self.stack[7],
+             self.stack[8],
+             self.stack[9],
+             self.stack[10],
+             self.stack[11],
+             self.stack[12],
+             self.stack[13],
+             self.stack[14],
+             self.stack[15],
+             self.i,
+             self.pc)
+    }
+}
