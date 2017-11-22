@@ -78,6 +78,7 @@ pub struct Chip8 {
     /// Chip8 computers have a 64 x 32 pixel display.
     display: [[bool; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
 
+    /// This flag is enabled when the chip executes the draw command
     render_flag: bool,
 
     /// Used to keep the timers ticking down at 60Hz
@@ -153,6 +154,7 @@ impl Chip8 {
         }
     }
     
+    /// Get the state of the render flag
     pub fn get_render_flag(&self) -> bool {
         self.render_flag
     }
