@@ -29,7 +29,7 @@ fn main() {
     
     // clock speed for the execution of chip-8 commands in MHz
     let clock_speed = 1;
-    let clock_speed = (1 / (clock_speed)) * 1000000;
+    let clock_speed = (1 / clock_speed) * 1000000;
     let clock_speed = Duration::new(0, clock_speed);
     let mut last_cycle = Instant::now();
     
@@ -69,19 +69,22 @@ fn main() {
             
             // update the host's buzzer with the state of the chip's sound timer
             buzzer.set(chip.sound_status());
-            
-            // update host's window with chip's graphics
-            for y in 0 .. DISPLAY_HEIGHT {
-                for x in 0 .. DISPLAY_WIDTH {
-                    let color =  if chip.get_pixel(x, y) {
-                        on_color
-                    } else {
-                        off_color
-                    };
-                    window.set_pixel(color, x as i32, y as i32);
+
+            if chip.get_render_flag() {
+                // update host's window with chip's graphics
+                for y in 0 .. DISPLAY_HEIGHT {
+                    for x in 0 .. DISPLAY_WIDTH {
+                        let color =  if chip.get_pixel(x, y) {
+                            on_color
+                        } else {
+                            off_color
+                        };
+                        window.set_pixel(color, x as i32, y as i32);
+                    }
                 }
+
+                window.update();
             }
-            window.update();
         }
     }
 }

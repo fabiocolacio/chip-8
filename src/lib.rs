@@ -77,7 +77,9 @@ pub struct Chip8 {
     
     /// Chip8 computers have a 64 x 32 pixel display.
     display: [[bool; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
-    
+
+    render_flag: bool,
+
     /// Used to keep the timers ticking down at 60Hz
     last_cycle: Instant,
 }
@@ -116,6 +118,7 @@ impl Chip8 {
             pc: 0x200,
             input: [false; 0x10],
             display: [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
+            render_flag: false,
             last_cycle: Instant::now(),
         })
     }
@@ -145,15 +148,22 @@ impl Chip8 {
             pc: 0x200,
             input: [false; 0x10],
             display: [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
+            render_flag: false,
             last_cycle: Instant::now(),
         }
     }
     
+    pub fn get_render_flag(&self) -> bool {
+        self.render_flag
+    }
+
     /// Performs a single Chip8 operation, and updates timers
     pub fn tick(&mut self) {
         let opcode: u16 = (self.mem[self.pc as usize] as u16) << 8; self.pc += 1;
         let opcode: u16 = opcode | (self.mem[self.pc as usize] as u16); self.pc += 1;
-        
+     
+        self.render_flag = false;
+
         // Execute the instruction at PC
         self.execute_opcode(opcode);
         
@@ -290,6 +300,7 @@ impl Chip8 {
             // dxyn draws a sprite at location (Vx, Vy) of height N.
             // The sprite is taken from memory address stored in register i
             0xd => {
+                self.render_flag = true;
                 for index in 0 .. n as usize {
                     let sprite: u8 = self.mem[self.i as usize + index];
                     
